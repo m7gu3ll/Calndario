@@ -3,7 +3,6 @@ package Calendar;
 import Exceptions.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Iterator;
 
 public interface CalendarSystem {
@@ -16,7 +15,7 @@ public interface CalendarSystem {
 
     Iterator<Account> accounts();
 
-    Iterator<Event> OrderedEvents(ArrayList<String> topics);
+    Iterator<Event> topics(String[] topics);
 
     void create(String accountName, String eventName, String priority, LocalDateTime date, String[] topics) throws UserDoesntExist, UnknownPriority, GuestsCantCreateEvents, StaffCantCreateHighPriorityEvents, EventAlreadyExists, HasAnotherEventAtThatTime;
 

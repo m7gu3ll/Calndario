@@ -122,17 +122,23 @@ public class EventClass implements Event {
     }
 
     @Override
-    public int compareEvents(ArrayList<String> topics) {
-        Iterator<String> thisTopics = getTopics();
-        int searchTopicsLenghts = topics.size();
-        int numberOfTopics = 0;
-        while (thisTopics.hasNext()) {
-            String topic = thisTopics.next();
-            for (int i = 0; i < searchTopicsLenghts; i++) {
-                if (topic.equals(topics.get(i)))
-                    numberOfTopics++;
-            }
+    public int numberOfMatchingTopics(String[] topics) {
+        int n = 0;
+        for (int i = 0; i < topics.length; i++) {
+            if (topicsContains(topics[i]))
+                n++;
         }
-        return numberOfTopics;
+        return n;
+    }
+
+    private boolean topicsContains(String topic) {
+        boolean contains = false;
+        int i = 0;
+        while (i < topics.length && !contains) {
+            if (topics[i].equals(topic))
+                contains = true;
+            i++;
+        }
+        return contains;
     }
 }

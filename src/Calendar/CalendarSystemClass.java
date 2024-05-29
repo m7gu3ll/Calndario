@@ -1,6 +1,7 @@
 package Calendar;
 
 import Exceptions.*;
+import Utilities.Sort;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -62,58 +63,39 @@ public class CalendarSystemClass implements CalendarSystem {
         return users.values().iterator();
     }
 
-    public Iterator<Event> event() {
+    public Iterator<Event> events() {
         return events.values().iterator();
     }
 
     @Override
-    public Iterator<Event> OrderedEvents(ArrayList<String> topics) {
-        ArrayList<Event> finalList = new ArrayList<>();
-        int totalSize = topics.size();
-        while (totalSize <= 0) {
-            Event[] temp = nOrderTopics(topics, totalSize);
-            int i = 0;
-            for (int j = 0; j < temp.length; j++) {
-                finalList.add(i, temp[j]);
-                i++;
+    public Iterator<Event> topics(String[] topics) {
+        ArrayList<Event> events = new ArrayList<>();
+        int totalSize = topics.length;
+        while (totalSize > 0) {
+            Event[] temp = eventsWithTopicsInCommon(topics, totalSize);
+            for (int i = 0; i < temp.length; i++) {
+                events.add(temp[i]);
             }
             totalSize--;
         }
-        return finalList.iterator();
+        return events.iterator();
     }
 
 
-    public Event[] nOrderTopics(ArrayList<String> topics, int i) {
-        Iterator<Event> eventIterator = event();
-        Event[] returnEvents = new Event[i];
-        int j = 0;
-        while (eventIterator.hasNext()) {
-            Event evento = eventIterator.next();
-            if (evento.compareEvents(topics) == i) {
-                returnEvents[j] = evento;
-                j++;
+    private Event[] eventsWithTopicsInCommon(String[] topics, int numberOfTopics) {
+        List<Event> returnEvents = new ArrayList<>();
+
+        Iterator<Event> it = events();
+        while (it.hasNext()) {
+            Event event = it.next();
+            if (event.numberOfMatchingTopics(topics) == numberOfTopics) {
+                returnEvents.add(event);
             }
         }
-        return alphabeticOrder(returnEvents);
-    }
 
-    public Event[] alphabeticOrder(Event[] nTopics) {
-        int n = nTopics.length;
-        boolean swapped;
-        do {
-            swapped = false;
-            for (int i = 0; i < n - 1; i++) {
-                if (nTopics[i].compareTo(nTopics[i + 1]) > 0) {
-
-                    Event temp = nTopics[i];
-                    nTopics[i] = nTopics[i + 1];
-                    nTopics[i + 1] = temp;
-                    swapped = true;
-                }
-            }
-            n--;
-        } while (swapped);
-        return nTopics;
+        Event[] events = returnEvents.toArray(new Event[0]);
+        Sort.sort(events);
+        return events;
     }
 
     private void getInvited(Event event, Account user) {

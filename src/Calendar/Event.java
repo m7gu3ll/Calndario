@@ -1,7 +1,6 @@
 package Calendar;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Iterator;
 
 public interface Event extends Comparable<Event> {
@@ -33,6 +32,6 @@ public interface Event extends Comparable<Event> {
 
     Iterator<Boolean> getResponses();
 
-    int compareEvents(ArrayList<String> topics);
+    int numberOfMatchingTopics(String[] topics);
 
 }

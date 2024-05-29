@@ -4,7 +4,6 @@ import Calendar.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
@@ -20,7 +19,7 @@ public class Main {
             cmd = sc.next().toUpperCase();
             switch (cmd) {
                 case "EVENT" -> event(sc.next(), sc.nextLine().trim(), system);
-                case "TOPICS" -> topics(sc, system);
+                case "TOPICS" -> topics(sc.nextLine().trim(), system);
                 case "RESPONSE" -> response(sc.nextLine().trim(), sc.next(), sc.nextLine().trim(), sc.nextLine().trim(),
                         system);
                 case "INVITE" -> invite(sc.next(), sc.next(), sc.nextLine().trim(), system);
@@ -37,28 +36,31 @@ public class Main {
         } while (!cmd.equals("EXIT"));
     }
 
-    private static void topics(Scanner sc, CalendarSystem system) {
-        ArrayList<String> topics = new ArrayList<>();
-        while (sc.hasNext()) {
-            topics.add(sc.next());
-        }
-        Iterator<Event> it = system.OrderedEvents(topics);
-        if (it.hasNext()) {
-            System.out.printf("Events on topics");
-            for (String topic : topics) {
-                System.out.printf(" %s", topic);
-            }
-            System.out.println();
+    private static void topics(String allTopics, CalendarSystem system) {
+        //System.out.println("all topics is \"" + allTopics + "\"");
+        String[] topics = allTopics.split("\\s+");
+        //for (String topic : topics)
+            //System.out.println("topic is \"" + topic + "\"");
 
-            while (it.hasNext()) {
-                Event event = it.next();
-                Iterator<String> thisEventTopics = event.getTopics();
-                System.out.printf("%s promoted by %s on", event.getName(), event.getPromoter());
-                while (thisEventTopics.hasNext())
-                    System.out.printf(" %s", thisEventTopics.next());
-                System.out.println();
-            }
-        } else System.out.println("No events on those topics.");
+        Iterator<Event> it = system.topics(topics);
+        if (!it.hasNext()) {
+            System.out.println("No events on those topics.");
+            return;
+        }
+
+        System.out.print("Events on topics");
+        for (String topic : topics) {
+            System.out.printf(" %s", topic);
+        }
+        System.out.println(":");
+        while (it.hasNext()) {
+            Event event = it.next();
+            Iterator<String> thisEventTopics = event.getTopics();
+            System.out.printf("%s promoted by %s on", event.getName(), event.getPromoter());
+            while (thisEventTopics.hasNext())
+                System.out.printf(" %s", thisEventTopics.next());
+            System.out.println();
+        }
     }
 
     private static void event(String promoter, String event, CalendarSystem system) {
