@@ -92,7 +92,7 @@ public class EventClass implements Event {
 
     @Override
     public int compareTo(Event o) {
-        return new PairClass(name, promoter).compareTo(new PairClass(o.getName(), o.getPromoter()));
+        return new PairClass<>(name, promoter).compareTo(new PairClass<>(o.getName(), o.getPromoter()));
     }
 
     @Override

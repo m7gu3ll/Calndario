@@ -385,6 +385,6 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     private Pair<String, String> id(String event, String promoter) {
-        return new PairClass(event, promoter);
+        return new PairClass<>(event, promoter);
     }
 }
