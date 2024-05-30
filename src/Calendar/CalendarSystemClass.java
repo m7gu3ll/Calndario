@@ -72,9 +72,9 @@ public class CalendarSystemClass implements CalendarSystem {
         ArrayList<Event> events = new ArrayList<>();
         int totalSize = topics.length;
         while (totalSize > 0) {
-            Event[] temp = eventsWithTopicsInCommon(topics, totalSize);
-            for (int i = 0; i < temp.length; i++) {
-                events.add(temp[i]);
+            List<Event> temp = eventsWithTopicsInCommon(topics, totalSize);
+            for (int i = 0; i < temp.size(); i++) {
+                events.add(temp.get(i));
             }
             totalSize--;
         }
@@ -82,18 +82,17 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
 
-    private Event[] eventsWithTopicsInCommon(String[] topics, int numberOfTopics) {
-        List<Event> returnEvents = new ArrayList<>();
+    private List<Event> eventsWithTopicsInCommon(String[] topics, int numberOfTopics) {
+        List<Event> events = new ArrayList<>();
 
         Iterator<Event> it = events();
         while (it.hasNext()) {
             Event event = it.next();
             if (event.numberOfMatchingTopics(topics) == numberOfTopics) {
-                returnEvents.add(event);
+                events.add(event);
             }
         }
-
-        Event[] events = returnEvents.toArray(new Event[0]);
+        ;
         Sort.sort(events);
         return events;
     }
@@ -220,14 +219,12 @@ public class CalendarSystemClass implements CalendarSystem {
                 Event otherEvent = events.get(id(id.first(), id.second()));
                 if (conflicts(otherEvent, event) &&
                         !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
-                    //System.out.printf("e %s, priority %d\ne %s, priority %d\n", event.getName(), event.getPriority(), otherEvent.getName(), otherEvent.getPriority());
                     if (otherEvent.getPriority() == 2) {
                         rejectedEvents.set(0, event);
                         getInvited(event, user);
                         rejectInvite(event, user);
                         foundHighPriorityEvent = true;
                     } else if (otherEvent.getPromoter().equals(user.getName())) {
-                        //System.out.printf("%s canceled\n", otherEvent.getName());
                         rejectedEvents.add(otherEvent);
                         canceledEvent = otherEvent;
                     } else {
@@ -372,19 +369,20 @@ public class CalendarSystemClass implements CalendarSystem {
     public boolean userIsOccupied(String userName, LocalDateTime date) {
         Account user = users.get(userName);
         Iterator<Pair<String, String>> it = user.getEvents();
-        while (it.hasNext()) {
+        boolean isOccupied = false;
+        while (it.hasNext() && !isOccupied) {
             Pair<String, String> event = it.next();
             if (events.get(event).getDate().equals(date)) {
                 Boolean response = user.getResponseTo(event);
                 if (response != null)
                     if (response.equals(true))
-                        return true;
+                        isOccupied = true;
             }
         }
-        return false;
+        return isOccupied;
     }
 
     private Pair<String, String> id(String event, String promoter) {
-        return new PairClass<>(event, promoter);
+        return new PairClass(event, promoter);
     }
 }

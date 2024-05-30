@@ -1,27 +1,27 @@
 package Calendar;
 
-public class PairClass<K extends Comparable<K>, V extends Comparable<V>> implements Pair<K, V> {
+public class PairClass implements Pair<String, String> {
 
-    private final K first;
-    private final V second;
+    private final String first;
+    private final String second;
 
-    public PairClass(K first, V second) {
+    public PairClass(String first, String second) {
         this.first = first;
         this.second = second;
     }
 
     @Override
-    public K first() {
+    public String first() {
         return first;
     }
 
     @Override
-    public V second() {
+    public String second() {
         return second;
     }
 
     @Override
-    public int compareTo(Pair<K, V> o) {
+    public int compareTo(Pair<String, String> o) {
         int i = first().compareTo(o.first());
         if (i != 0)
             return i;
@@ -30,6 +30,6 @@ public class PairClass<K extends Comparable<K>, V extends Comparable<V>> impleme
 
     @Override
     public boolean equals(Object o) {
-        return compareTo((Pair<K, V>) o) == 0;
+        return compareTo((PairClass) o) == 0;
     }
 }

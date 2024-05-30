@@ -34,6 +34,7 @@ public class Main {
                 default -> System.out.printf("Unknown command %s. Type help to see available commands.\n", cmd);
             }
         } while (!cmd.equals("EXIT"));
+        sc.close();
     }
 
     private static void topics(String allTopics, CalendarSystem system) {
