@@ -32,8 +32,8 @@ public abstract class AccountClass implements Account {
     }
 
     @Override
-    public void remove(Pair<String, String> event) {
-        int i = events.indexOf(event);
+    public void remove(Pair<String, String> id) {
+        int i = events.indexOf(id);
         events.remove(i);
         responses.remove(i);
     }
@@ -50,8 +50,8 @@ public abstract class AccountClass implements Account {
     }
 
     @Override
-    public Boolean getResponseTo(Pair<String, String> eventName) {
-        int i = events.indexOf(eventName);
+    public Boolean getResponseTo(Pair<String, String> id) {
+        int i = events.indexOf(id);
         return responses.get(i);
     }
 

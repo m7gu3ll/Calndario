@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.Scanner;
+
 public class Main {
 
     public static final String EVENT = "EVENT";
@@ -124,7 +125,7 @@ public class Main {
                 else responseName = REJECT;
                 System.out.printf(EVENT_FORMAT, invited.next(), responseName);
             }
-        } catch (UserDoesntExist e) {
+        } catch (AccountDoesntExist e) {
             System.out.printf(ACCOUNT_S_DOES_NOT_EXIST, promoter);
         } catch (EventDoesntExist e) {
             System.out.printf(S_DOES_NOT_EXIST_IN_ACCOUNT_S, event, promoter);
@@ -139,9 +140,9 @@ public class Main {
                 Event event = it.next();
                 System.out.printf(S_PROMOTED_BY_S_WAS_REJECTED, event.getName(), event.getPromoter());
             }
-        } catch (UserDoesntExist e) {
+        } catch (AccountDoesntExist e) {
             printUserDoesntExist(invited, promoter, e);
-        } catch (InvalidResponce e) {
+        } catch (InvalidResponse e) {
             System.out.println(UNKNOWN_EVENT_RESPONSE);
         } catch (EventDoesntExist e) {
             System.out.printf(S_DOES_NOT_EXIST_IN_ACCOUNT_S, eventName, promoter);
@@ -170,7 +171,7 @@ public class Main {
                     System.out.printf(S_PROMOTED_BY_S_WAS_REMOVED, event.getName(), event.getPromoter());
                 }
             }
-        } catch (UserDoesntExist e) {
+        } catch (AccountDoesntExist e) {
             printUserDoesntExist(invited, promoter, e);
         } catch (EventDoesntExist e) {
             System.out.printf(S_DOES_NOT_EXIST_IN_ACCOUNT_S, eventName, promoter);
@@ -181,7 +182,7 @@ public class Main {
         }
     }
 
-    private static void printUserDoesntExist(String invited, String promoter, UserDoesntExist e) {
+    private static void printUserDoesntExist(String invited, String promoter, AccountDoesntExist e) {
         switch (e.getMessage()) {
             case PROMOTER -> System.out.printf(ACCOUNT_S_DOES_NOT_EXIST, promoter);
             case INVITEE -> System.out.printf(ACCOUNT_S_DOES_NOT_EXIST, invited);
@@ -206,7 +207,7 @@ public class Main {
                         event.first(), system.getNOInvites(event.first(), event.second()), system.getNOAcceptedInvites(event.first(), event.second()),
                         system.getNORejectedInvites(event.first(), event.second()), system.getNOUnansweredInvites(event.first(), event.second()));
             }
-        } catch (UserDoesntExist e) {
+        } catch (AccountDoesntExist e) {
             System.out.printf(ACCOUNT_S_DOES_NOT_EXIST, accountName);
         }
     }
@@ -217,7 +218,7 @@ public class Main {
         try {
             system.create(accountName, eventName, priorityName, date, topics.split("\\s+"));
             System.out.printf(S_IS_SCHEDULED, eventName);
-        } catch (UserDoesntExist e) {
+        } catch (AccountDoesntExist e) {
             System.out.printf(ACCOUNT_S_DOES_NOT_EXIST, accountName);
         } catch (UnknownPriority e) {
             System.out.println(UNKNOWN_PRIORITY_TYPE);
@@ -248,7 +249,7 @@ public class Main {
         try {
             system.register(name, type.toUpperCase());
             System.out.printf(S_WAS_REGISTERED, name);
-        } catch (UserAlreadyExists e) {
+        } catch (AccountAlreadyExists e) {
             System.out.printf(ACCOUNT_S_ALREADY_EXISTS, name);
         } catch (InvalidType e) {
             System.out.println(UNKNOWN_ACCOUNT_TYPE);

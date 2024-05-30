@@ -17,17 +17,16 @@ public class CalendarSystemClass implements CalendarSystem {
     public static final int PROMOTER_AND_INVITEE_MISSING = 3;
     public static final String ACCEPT = "accept";
     public static final String REJECT = "reject";
-    Map<String, Account> users;
+    Map<String, Account> accounts;
     Map<Pair<String, String>, Event> events;
 
     public CalendarSystemClass() {
-        users = new TreeMap<>();
+        accounts = new TreeMap<>();
         events = new TreeMap<>();
     }
-
     @Override
-    public boolean hasUser(String name) {
-        return users.containsKey(name);
+    public boolean hasAccount(String name) {
+        return accounts.containsKey(name);
     }
 
     @Override
@@ -48,9 +47,9 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     @Override
-    public void register(String name, String type) throws UserAlreadyExists, InvalidType {
-        if (hasUser(name))
-            throw new UserAlreadyExists();
+    public void register(String name, String type) throws AccountAlreadyExists, InvalidType {
+        if (hasAccount(name))
+            throw new AccountAlreadyExists();
         if (typeIsInvalid(type))
             throw new InvalidType();
 
@@ -60,12 +59,12 @@ public class CalendarSystemClass implements CalendarSystem {
             case STAFF -> newAccount = new Staff(name);
             case MANAGER -> newAccount = new Manager(name);
         }
-        users.put(name, newAccount);
+        accounts.put(name, newAccount);
     }
 
     @Override
     public Iterator<Account> accounts() {
-        return users.values().iterator();
+        return accounts.values().iterator();
     }
 
     public Iterator<Event> events() {
@@ -125,8 +124,8 @@ public class CalendarSystemClass implements CalendarSystem {
         while (it.hasNext()) {
             Event otherEvent = events.get(it.next());
             if (conflicts(otherEvent, event) &&
-                    !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
-                rejectInvite(otherEvent, user);
+                    !Boolean.FALSE.equals(account.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
+                rejectInvite(otherEvent, account);
                 rejectedEvents.add(otherEvent);
             }
         }
@@ -136,27 +135,27 @@ public class CalendarSystemClass implements CalendarSystem {
     private void cancel(Event event) {
         Iterator<String> it = event.getInvited();
         while (it.hasNext()) {
-            users.get(it.next()).remove(id(event.getName(), event.getPromoter()));
+            accounts.get(it.next()).remove(id(event.getName(), event.getPromoter()));
         }
         events.remove(id(event.getName(), event.getPromoter()));
     }
 
     private void promote(Pair<String, String> id) {
         Event event = events.get(id);
-        Account user = users.get(event.getPromoter());
-        rejectAllThatConflictWith(event, user);
-        user.promote(id);
+        Account account = accounts.get(event.getPromoter());
+        rejectAllThatConflictWith(event, account);
+        account.promote(id);
     }
 
     @Override
     public void create(String accountName, String eventName, String priorityName, LocalDateTime date,
-                       String[] topics) throws UserDoesntExist, UnknownPriority,
+                       String[] topics) throws AccountDoesntExist, UnknownPriority,
             GuestsCantCreateEvents, StaffCantCreateHighPriorityEvents, EventAlreadyExists,
             HasAnotherEventAtThatTime {
         Pair<String, String> id = id(eventName, accountName);
-        if (!hasUser(accountName))
-            throw new UserDoesntExist(null);
-        Account promoter = users.get(accountName);
+        if (!hasAccount(accountName))
+            throw new AccountDoesntExist(null);
+        Account promoter = accounts.get(accountName);
         int priority = 0;
         switch (priorityName) {
             case HIGH:
@@ -173,7 +172,7 @@ public class CalendarSystemClass implements CalendarSystem {
             throw new GuestsCantCreateEvents();
         if (events.get(id) != null)
             throw new EventAlreadyExists();
-        if (userIsOccupied(accountName, date))
+        if (accountIsOccupied(accountName, date))
             throw new HasAnotherEventAtThatTime();
 
         events.put(id, new EventClass(eventName, accountName, priority, date, topics));
@@ -181,61 +180,61 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     @Override
-    public Iterator<Event> invite(String invited, String promoter, String eventName) throws UserDoesntExist, EventDoesntExist, AlreadyInvitedToThatEvent, HasAnotherEventAtThatTime {
+    public Iterator<Event> invite(String invited, String promoter, String eventName) throws AccountDoesntExist, EventDoesntExist, AlreadyInvitedToThatEvent, HasAnotherEventAtThatTime {
         checkIfAccountsExist(invited, promoter);
 
         Event event = events.get(id(eventName, promoter));
-        Account user = users.get(invited);
+        Account account = accounts.get(invited);
         if (event == null)
             throw new EventDoesntExist();
         if (!event.getPromoter().equals(promoter))
             throw new EventDoesntExist();
-        if (user == null)
+        if (account == null)
             throw new AlreadyInvitedToThatEvent();
-        if (user.wasInvitedTo(id(eventName, promoter)))
+        if (account.wasInvitedTo(id(eventName, promoter)))
             throw new AlreadyInvitedToThatEvent();
 
-        return invite(user, event);
+        return invite(account, event);
     }
 
     private Iterator<Event> invite(Account user, Event event) throws HasAnotherEventAtThatTime {
         if (event.getPriority() == 2 && user instanceof Staff) {
             return getInvitedToHighPriorityEvent(user, event);
         } else {
-            checkForEventsAtTheSameTime(event, user);
-            getInvited(event, user);
+            checkForEventsAtTheSameTime(event, account);
+            getInvited(event, account);
         }
         return noEvents();
     }
 
-    private Iterator<Event> getInvitedToHighPriorityEvent(Account user, Event event) throws HasAnotherEventAtThatTime {
+    private Iterator<Event> getInvitedToHighPriorityEvent(Account account, Event event) throws HasAnotherEventAtThatTime {
         List<Event> rejectedEvents = new ArrayList<>();
         rejectedEvents.add(null);
-        Iterator<Pair<String, String>> it = user.getEvents();
+        Iterator<Pair<String, String>> it = account.getEvents();
         boolean foundHighPriorityEvent = false;
         Event canceledEvent = null;
         while (it.hasNext() && !foundHighPriorityEvent) {
             Pair<String, String> id = it.next();
             Event otherEvent = events.get(id(id.first(), id.second()));
             if (conflicts(otherEvent, event) &&
-                    !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
+                    !Boolean.FALSE.equals(account.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
                 if (otherEvent.getPriority() == 2) {
                     rejectedEvents.set(0, event);
-                    getInvited(event, user);
-                    rejectInvite(event, user);
+                    getInvited(event, account);
+                    rejectInvite(event, account);
                     foundHighPriorityEvent = true;
-                } else if (otherEvent.getPromoter().equals(user.getName())) {
+                } else if (otherEvent.getPromoter().equals(account.getName())) {
                     rejectedEvents.add(otherEvent);
                     canceledEvent = otherEvent;
                 } else {
                     rejectedEvents.add(otherEvent);
-                    rejectInvite(otherEvent, user);
+                    rejectInvite(otherEvent, account);
                 }
             }
         }
         if (!foundHighPriorityEvent) {
-            getInvited(event, user);
-            acceptInvite(event, user);
+            getInvited(event, account);
+            acceptInvite(event, account);
         } else {
             throw new HasAnotherEventAtThatTime();
         }
@@ -244,14 +243,14 @@ public class CalendarSystemClass implements CalendarSystem {
         return rejectedEvents.iterator();
     }
 
-    private void checkForEventsAtTheSameTime(Event event, Account user) throws HasAnotherEventAtThatTime {
-        Iterator<Pair<String, String>> it = user.getEvents();
+    private void checkForEventsAtTheSameTime(Event event, Account account) throws HasAnotherEventAtThatTime {
+        Iterator<Pair<String, String>> it = account.getEvents();
         boolean foundEvent = false;
         while (it.hasNext() && !foundEvent) {
             Pair<String, String> id = it.next();
             Event otherEvent = events.get(id(id.first(), id.second()));
             if (conflicts(otherEvent, event))
-                if (Boolean.TRUE.equals(user.getResponseTo(id)))
+                if (Boolean.TRUE.equals(account.getResponseTo(id)))
                     foundEvent = true;
         }
         if (foundEvent)
@@ -259,15 +258,15 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     @Override
-    public Iterator<Event> response(String invitedName, String promoterName, String eventName, String responseName) throws UserDoesntExist, InvalidResponce, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, HasAnotherEventAtThatTime {
+    public Iterator<Event> response(String invitedName, String promoterName, String eventName, String responseName) throws AccountDoesntExist, InvalidResponse, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, HasAnotherEventAtThatTime {
         boolean accepted;
         checkIfAccountsExist(invitedName, promoterName);
         switch (responseName) {
             case ACCEPT -> accepted = true;
             case REJECT -> accepted = false;
-            default -> throw new InvalidResponce();
+            default -> throw new InvalidResponse();
         }
-        Account invited = users.get(invitedName);
+        Account invited = accounts.get(invitedName);
         Event event = events.get(id(eventName, promoterName));
         if (event == null)
             throw new EventDoesntExist();
@@ -284,16 +283,16 @@ public class CalendarSystemClass implements CalendarSystem {
         return acceptInvite(event, invited);
     }
 
-    private void checkIfAccountsExist(String invitedName, String promoterName) throws UserDoesntExist {
+    private void checkIfAccountsExist(String invitedName, String promoterName) throws AccountDoesntExist {
         int usersMissing = 0;
-        if (!hasUser(promoterName))
+        if (!hasAccount(promoterName))
             usersMissing++;
-        if (!hasUser(invitedName))
+        if (!hasAccount(invitedName))
             usersMissing += 2;
         switch (usersMissing) {
-            case PROMOTER_MISSING -> throw new UserDoesntExist("p");
-            case INVITEE_MISSING -> throw new UserDoesntExist("i");
-            case PROMOTER_AND_INVITEE_MISSING -> throw new UserDoesntExist("pi");
+            case PROMOTER_MISSING -> throw new AccountDoesntExist("p");
+            case INVITEE_MISSING -> throw new AccountDoesntExist("i");
+            case PROMOTER_AND_INVITEE_MISSING -> throw new AccountDoesntExist("pi");
         }
     }
 
@@ -326,9 +325,9 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     @Override
-    public LocalDateTime getEventDate(String event, String promoter) throws UserDoesntExist, EventDoesntExist {
-        if (users.get(promoter) == null)
-            throw new UserDoesntExist(null);
+    public LocalDateTime getEventDate(String event, String promoter) throws AccountDoesntExist, EventDoesntExist {
+        if (accounts.get(promoter) == null)
+            throw new AccountDoesntExist(null);
         if (events.get(id(event, promoter)) == null)
             throw new EventDoesntExist();
         return events.get(id(event, promoter)).getDate();
@@ -345,22 +344,22 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     @Override
-    public Iterator<Pair<String, String>> getAccountEvents(String accountName) throws UserDoesntExist {
-        if (!hasUser(accountName))
-            throw new UserDoesntExist(null);
+    public Iterator<Pair<String, String>> getAccountEvents(String account) throws AccountDoesntExist {
+        if (!hasAccount(account))
+            throw new AccountDoesntExist(null);
 
-        return users.get(accountName).getEvents();
+        return accounts.get(account).getEvents();
     }
 
     @Override
-    public boolean userIsOccupied(String userName, LocalDateTime date) {
-        Account user = users.get(userName);
-        Iterator<Pair<String, String>> it = user.getEvents();
+    public boolean accountIsOccupied(String accountName, LocalDateTime date) {
+        Account account = accounts.get(accountName);
+        Iterator<Pair<String, String>> it = account.getEvents();
         boolean isOccupied = false;
         while (it.hasNext() && !isOccupied) {
             Pair<String, String> event = it.next();
             if (events.get(event).getDate().equals(date)) {
-                Boolean response = user.getResponseTo(event);
+                Boolean response = account.getResponseTo(event);
                 if (response != null)
                     if (response.equals(true))
                         isOccupied = true;
