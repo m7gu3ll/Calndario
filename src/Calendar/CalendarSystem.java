@@ -25,7 +25,7 @@ public interface CalendarSystem {
 
     boolean userIsOccupied(String user, LocalDateTime date);
 
-    Iterator<Event> response(String invited, String promoter, String eventName, String responseName) throws UserDoesntExist, InvalidResponce, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, UserIsOcuppied;
+    Iterator<Event> response(String invited, String promoter, String eventName, String responseName) throws UserDoesntExist, InvalidResponce, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, HasAnotherEventAtThatTime;
 
     int getNOInvites(String event, String promoter);
 

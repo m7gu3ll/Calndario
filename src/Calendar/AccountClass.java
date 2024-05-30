@@ -46,7 +46,6 @@ public abstract class AccountClass implements Account {
 
     @Override
     public boolean wasInvitedTo(Pair<String, String> event) {
-        //events.forEach(n->{ System.out.printf("name = %s, promoter = %s\n",n.first(), n.second());});
         return events.contains(event);
     }
 

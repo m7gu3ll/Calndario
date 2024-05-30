@@ -10,6 +10,11 @@ public class CalendarSystemClass implements CalendarSystem {
     public static final String STAFF = "STAFF";
     public static final String MANAGER = "MANAGER";
     public static final String GUEST = "GUEST";
+    public static final String HIGH = "high";
+    public static final String MID = "mid";
+    public static final int PROMOTER_MISSING = 1;
+    public static final int INVITEE_MISSING = 2;
+    public static final int PROMOTER_AND_INVITEE_MISSING = 3;
     public static final String ACCEPT = "accept";
     public static final String REJECT = "reject";
     Map<String, Account> users;
@@ -92,7 +97,6 @@ public class CalendarSystemClass implements CalendarSystem {
                 events.add(event);
             }
         }
-        ;
         Sort.sort(events);
         return events;
     }
@@ -113,7 +117,6 @@ public class CalendarSystemClass implements CalendarSystem {
     private void rejectInvite(Event event, Account user) {
         user.reject(id(event.getName(), event.getPromoter()));
         event.getRejected(user.getName());
-        //System.out.println(user.getName() + " had " + event.getName() + " rejected. its response is " + user.getResponseTo(id(event.getName(), event.getPromoter())));
     }
 
     private List<Event> rejectAllThatConflictWith(Event event, Account user) {
@@ -123,10 +126,7 @@ public class CalendarSystemClass implements CalendarSystem {
             Event otherEvent = events.get(it.next());
             if (conflicts(otherEvent, event) &&
                     !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
-                //System.out.printf("%s conflicts with %s\n", otherEvent.getName(), event.getName());
-                //System.out.printf("%s response is %s\n", otherEvent.getName(), user.getResponseTo(id(event.getName(), event.getPromoter())));
                 rejectInvite(otherEvent, user);
-                //if (Boolean.TRUE.equals(user.getResponseTo(id(event.getName(), event.getPromoter()))))
                 rejectedEvents.add(otherEvent);
             }
         }
@@ -159,11 +159,11 @@ public class CalendarSystemClass implements CalendarSystem {
         Account promoter = users.get(accountName);
         int priority = 0;
         switch (priorityName) {
-            case "high":
+            case HIGH:
                 if (promoter instanceof Staff)
                     throw new StaffCantCreateHighPriorityEvents();
                 priority++;
-            case "mid":
+            case MID:
                 priority++;
                 break;
             default:
@@ -182,16 +182,7 @@ public class CalendarSystemClass implements CalendarSystem {
 
     @Override
     public Iterator<Event> invite(String invited, String promoter, String eventName) throws UserDoesntExist, EventDoesntExist, AlreadyInvitedToThatEvent, HasAnotherEventAtThatTime {
-        int usersMissing = 0;
-        if (!hasUser(promoter))
-            usersMissing++;
-        if (!hasUser(invited))
-            usersMissing += 2;
-        switch (usersMissing) {
-            case 1 -> throw new UserDoesntExist("p");
-            case 2 -> throw new UserDoesntExist("i");
-            case 3 -> throw new UserDoesntExist("pi");
-        }
+        checkIfAccountsExist(invited, promoter);
 
         Event event = events.get(id(eventName, promoter));
         Account user = users.get(invited);
@@ -208,75 +199,74 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     private Iterator<Event> invite(Account user, Event event) throws HasAnotherEventAtThatTime {
-        List<Event> rejectedEvents = new ArrayList<>();
         if (event.getPriority() == 2 && user instanceof Staff) {
-            rejectedEvents.add(null);
-            Iterator<Pair<String, String>> it = user.getEvents();
-            boolean foundHighPriorityEvent = false;
-            Event canceledEvent = null;
-            while (it.hasNext() && !foundHighPriorityEvent) {
-                Pair<String, String> id = it.next();
-                Event otherEvent = events.get(id(id.first(), id.second()));
-                if (conflicts(otherEvent, event) &&
-                        !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
-                    if (otherEvent.getPriority() == 2) {
-                        rejectedEvents.set(0, event);
-                        getInvited(event, user);
-                        rejectInvite(event, user);
-                        foundHighPriorityEvent = true;
-                    } else if (otherEvent.getPromoter().equals(user.getName())) {
-                        rejectedEvents.add(otherEvent);
-                        canceledEvent = otherEvent;
-                    } else {
-                        rejectedEvents.add(otherEvent);
-                        rejectInvite(otherEvent, user);
-                    }
-                }
-            }
-            if (!foundHighPriorityEvent) {
-                getInvited(event, user);
-                acceptInvite(event, user);
-            } else {
-                throw new HasAnotherEventAtThatTime();
-            }
-            if (canceledEvent != null)
-                cancel(canceledEvent);
+            return getInvitedToHighPriorityEvent(user, event);
         } else {
-            Iterator<Pair<String, String>> it = user.getEvents();
-            boolean foundEvent = false;
-            while (it.hasNext() && !foundEvent) {
-                Pair<String, String> id = it.next();
-                Event otherEvent = events.get(id(id.first(), id.second()));
-                if (conflicts(otherEvent, event))
-                    if (Boolean.TRUE.equals(user.getResponseTo(id)))
-                        foundEvent = true;
-            }
-            if (foundEvent)
-                throw new HasAnotherEventAtThatTime();
+            checkForEventsAtTheSameTime(event, user);
             getInvited(event, user);
         }
+        return noEvents();
+    }
+
+    private Iterator<Event> getInvitedToHighPriorityEvent(Account user, Event event) throws HasAnotherEventAtThatTime {
+        List<Event> rejectedEvents = new ArrayList<>();
+        rejectedEvents.add(null);
+        Iterator<Pair<String, String>> it = user.getEvents();
+        boolean foundHighPriorityEvent = false;
+        Event canceledEvent = null;
+        while (it.hasNext() && !foundHighPriorityEvent) {
+            Pair<String, String> id = it.next();
+            Event otherEvent = events.get(id(id.first(), id.second()));
+            if (conflicts(otherEvent, event) &&
+                    !Boolean.FALSE.equals(user.getResponseTo(id(otherEvent.getName(), otherEvent.getPromoter())))) {
+                if (otherEvent.getPriority() == 2) {
+                    rejectedEvents.set(0, event);
+                    getInvited(event, user);
+                    rejectInvite(event, user);
+                    foundHighPriorityEvent = true;
+                } else if (otherEvent.getPromoter().equals(user.getName())) {
+                    rejectedEvents.add(otherEvent);
+                    canceledEvent = otherEvent;
+                } else {
+                    rejectedEvents.add(otherEvent);
+                    rejectInvite(otherEvent, user);
+                }
+            }
+        }
+        if (!foundHighPriorityEvent) {
+            getInvited(event, user);
+            acceptInvite(event, user);
+        } else {
+            throw new HasAnotherEventAtThatTime();
+        }
+        if (canceledEvent != null)
+            cancel(canceledEvent);
         return rejectedEvents.iterator();
     }
 
-    @Override
-    public Iterator<Event> response(String invitedName, String promoterName, String eventName, String responseName) throws UserDoesntExist, InvalidResponce, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, UserIsOcuppied {
-        int usersMissing = 0;
-        boolean accepted;
-        if (!hasUser(invitedName))
-            usersMissing++;
-        if (!hasUser(promoterName))
-            usersMissing += 2;
-        switch (usersMissing) {
-            case 1 -> throw new UserDoesntExist("i");
-            case 2 -> throw new UserDoesntExist("p");
-            case 3 -> throw new UserDoesntExist("pi");
+    private void checkForEventsAtTheSameTime(Event event, Account user) throws HasAnotherEventAtThatTime {
+        Iterator<Pair<String, String>> it = user.getEvents();
+        boolean foundEvent = false;
+        while (it.hasNext() && !foundEvent) {
+            Pair<String, String> id = it.next();
+            Event otherEvent = events.get(id(id.first(), id.second()));
+            if (conflicts(otherEvent, event))
+                if (Boolean.TRUE.equals(user.getResponseTo(id)))
+                    foundEvent = true;
         }
+        if (foundEvent)
+            throw new HasAnotherEventAtThatTime();
+    }
+
+    @Override
+    public Iterator<Event> response(String invitedName, String promoterName, String eventName, String responseName) throws UserDoesntExist, InvalidResponce, NoInvitation, EventDoesntExist, AlreadyRespondedToThatEvent, HasAnotherEventAtThatTime {
+        boolean accepted;
+        checkIfAccountsExist(invitedName, promoterName);
         switch (responseName) {
-            case "accept" -> accepted = true;
-            case "reject" -> accepted = false;
+            case ACCEPT -> accepted = true;
+            case REJECT -> accepted = false;
             default -> throw new InvalidResponce();
         }
-
         Account invited = users.get(invitedName);
         Event event = events.get(id(eventName, promoterName));
         if (event == null)
@@ -290,24 +280,21 @@ public class CalendarSystemClass implements CalendarSystem {
             rejectInvite(event, invited);
             return noEvents();
         }
-
-        Iterator<Pair<String, String>> it = invited.getEvents();
-        boolean foundEvent = false;
-        while (it.hasNext() && !foundEvent) {
-            Pair<String, String> id = it.next();
-            Event otherEvent = events.get(id(id.first(), id.second()));
-            if (conflicts(otherEvent, event)) {
-                //System.out.printf("%s conflicts with %s\n", otherEvent.getName(), event.getName());
-                //System.out.printf("%s response is %s\n", otherEvent.getName(), invited.getResponseTo(id));
-                if (Boolean.TRUE.equals(invited.getResponseTo(id))) {
-                    foundEvent = true;
-                }
-            }
-        }
-        if (foundEvent)
-            throw new UserIsOcuppied();
-
+        checkForEventsAtTheSameTime(event, invited);
         return acceptInvite(event, invited);
+    }
+
+    private void checkIfAccountsExist(String invitedName, String promoterName) throws UserDoesntExist {
+        int usersMissing = 0;
+        if (!hasUser(promoterName))
+            usersMissing++;
+        if (!hasUser(invitedName))
+            usersMissing += 2;
+        switch (usersMissing) {
+            case PROMOTER_MISSING -> throw new UserDoesntExist("p");
+            case INVITEE_MISSING -> throw new UserDoesntExist("i");
+            case PROMOTER_AND_INVITEE_MISSING -> throw new UserDoesntExist("pi");
+        }
     }
 
     private Iterator<Event> noEvents() {
@@ -383,6 +370,6 @@ public class CalendarSystemClass implements CalendarSystem {
     }
 
     private Pair<String, String> id(String event, String promoter) {
-        return new PairClass(event, promoter);
+        return new EventId(event, promoter);
     }
 }

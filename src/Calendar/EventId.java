@@ -1,11 +1,11 @@
 package Calendar;
 
-public class PairClass implements Pair<String, String> {
+public class EventId implements Pair<String, String> {
 
     private final String first;
     private final String second;
 
-    public PairClass(String first, String second) {
+    public EventId(String first, String second) {
         this.first = first;
         this.second = second;
     }
@@ -30,6 +30,6 @@ public class PairClass implements Pair<String, String> {
 
     @Override
     public boolean equals(Object o) {
-        return compareTo((PairClass) o) == 0;
+        return compareTo((EventId) o) == 0;
     }
 }
